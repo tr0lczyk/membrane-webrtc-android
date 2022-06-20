@@ -57,6 +57,7 @@ constructor(
     private var config: RTCConfiguration? = null
     private var peerConnection: PeerConnection? = null
     private var queuedRemoteCandidates: MutableList<IceCandidate>? = null
+    private val localStreamId = listOf(UUID.randomUUID().toString())
 
 
     private val coroutineScope: CoroutineScope =
@@ -113,6 +114,14 @@ constructor(
         localTracks.add(videoTrack)
         localPeer = localPeer.withTrack(videoTrack.id(), metadata)
 
+        peerConnection?.let {
+            it.addTrack(videoTrack.rtcTrack(), localStreamId)
+            it.enforceSendOnlyDirection()
+            coroutineScope.launch {
+                transport.send(RenegotiateTracks())
+            }
+        }
+
         return videoTrack
     }
 
@@ -123,6 +132,14 @@ constructor(
 
         localTracks.add(audioTrack)
         localPeer = localPeer.withTrack(audioTrack.id(), metadata)
+
+        peerConnection?.let {
+            it.addTrack(audioTrack.rtcTrack(), localStreamId)
+            it.enforceSendOnlyDirection()
+            coroutineScope.launch {
+                transport.send(RenegotiateTracks())
+            }
+        }
 
         return audioTrack
     }
